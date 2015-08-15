@@ -22,9 +22,8 @@ CREATE TABLE Players (
 DROP TABLE IF EXISTS Matches;
 CREATE TABLE Matches (
   Id SERIAL PRIMARY KEY,
-  Player1 int REFERENCES Players(Id),
-  Player2 int REFERENCES Players(Id),
-  Winner int REFERENCES Players(Id)
+  Winner int REFERENCES Players(Id),
+  Loser int REFERENCES Players(Id)
 );
 
 -- Create a view for the player standings
@@ -32,9 +31,9 @@ CREATE OR REPLACE VIEW Standings AS
   SELECT Players.Id,
          Players.Name,
          SUM(CASE WHEN Matches.Winner=Players.Id THEN 1 ELSE 0 END) AS Wins,
-         SUM(CASE WHEN Matches.Player1=Players.Id OR Matches.Player2=Players.Id THEN 1 ELSE 0 END) AS Matches,
-         SUM(CASE WHEN (Matches.Player1=Players.Id AND Matches.Player2 is NULL) OR (Matches.Player1 is NULL AND Matches.Player2=Players.Id) THEN 1 ELSE 0 END) AS Byes
+         SUM(CASE WHEN Matches.Winner=Players.Id OR Matches.Loser=Players.Id THEN 1 ELSE 0 END) AS Matches,
+         SUM(CASE WHEN (Matches.Winner=Players.Id AND Matches.Loser is NULL) OR (Matches.Winner is NULL AND Matches.Loser=Players.Id) THEN 1 ELSE 0 END) AS Byes
   From Players
-  LEFT JOIN Matches on (Players.Id=Matches.Player1 OR Players.Id=Matches.Player2)
+  LEFT JOIN Matches on (Players.Id=Matches.Winner OR Players.Id=Matches.Loser)
   GROUP BY Players.Id
   ORDER BY Wins DESC, Byes DESC;
