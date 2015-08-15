@@ -73,7 +73,7 @@ def playerStandings():
     """
     conn = connect()
     c = conn.cursor()
-    c.execute("SELECT Players.Id, Players.Name, SUM(CASE WHEN Matches.Winner=Players.Id THEN 1 ELSE 0 END) AS Wins, SUM(CASE WHEN Matches.Player1=Players.Id OR Matches.Player2=Players.Id THEN 1 ELSE 0 END) AS Matches, SUM(CASE WHEN (Matches.Player1=Players.Id OR Matches.Player2=Players.Id) AND (Matches.Player1 is NULL OR Matches.Player2 is NULL) THEN 1 ELSE 0 END) AS Byes From Players LEFT JOIN Matches on (Players.Id=Matches.Player1 OR Players.Id=Matches.Player2) GROUP BY Players.Id ORDER BY Wins DESC, Byes DESC;")
+    c.execute("SELECT * FROM Standings")
     result = c.fetchall()
     conn.close()
     return result
