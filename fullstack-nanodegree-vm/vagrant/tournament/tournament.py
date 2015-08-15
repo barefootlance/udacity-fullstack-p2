@@ -105,10 +105,15 @@ def reportMatch(winner, loser):
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
 
-    Assuming that there are an even number of players registered, each player
-    appears exactly once in the pairings.  Each player is paired with another
-    player with an equal or nearly-equal win record, that is, a player adjacent
-    to him or her in the standings.
+    Each player appears exactly once in the pairings.  Each player is paired
+    with another player with an equal or nearly-equal win record, that is, a
+    player adjacent to him or her in the standings.
+
+    If there are an odd number of players one player will get a bye, that
+    is the player will be matched with an opponent with an id of None.
+    A player will not receive a bye if they already have more byes than
+    any other player in the tournament. The bye will go to the player
+    lowest in the standings who does not already have too many byes.
 
     Returns:
       A list of tuples, each of which contains (id1, name1, id2, name2)
