@@ -13,30 +13,17 @@ def connect():
 
 def deleteMatches():
     """Remove all the match records from the database."""
-    conn = connect()
-    c = conn.cursor()
-    c.execute("DELETE FROM Matches;")
-    conn.commit()
-    conn.close()
+    sqlCud("DELETE FROM Matches;")
 
 
 def deletePlayers():
     """Remove all the player records from the database."""
-    conn = connect()
-    c = conn.cursor()
-    c.execute("DELETE FROM Players;")
-    conn.commit()
-    conn.close()
+    sqlCud("DELETE FROM Players;")
 
 
 def countPlayers():
     """Returns the number of players currently registered."""
-    conn = connect()
-    c = conn.cursor()
-    c.execute("SELECT Count(*) FROM Players;")
-    count = c.fetchone()[0]
-    conn.close()
-    return count
+    return sqlReadScalar("SELECT Count(*) FROM Players;")
 
 
 def registerPlayer(name):
@@ -48,13 +35,7 @@ def registerPlayer(name):
     Args:
       name: the player's full name (need not be unique).
     """
-    conn = connect()
-    c = conn.cursor()
-    sql = "INSERT INTO Players (Name) VALUES (%s);"
-    data = (name,)
-    c.execute(sql, data)
-    conn.commit()
-    conn.close()
+    sqlCud("INSERT INTO Players (Name) VALUES (%s);", (name,))
 
 
 def playerStandings():
@@ -71,12 +52,7 @@ def playerStandings():
         matches: the number of matches the player has played
         byes: the number of byes the player has played
     """
-    conn = connect()
-    c = conn.cursor()
-    c.execute("SELECT * FROM Standings")
-    result = c.fetchall()
-    conn.close()
-    return result
+    return sqlRead("SELECT * FROM Standings")
 
 
 def reportMatch(winner, loser):
@@ -91,15 +67,11 @@ def reportMatch(winner, loser):
         if loser == None: # both are None? Idiot...
             return
         winner = loser
-        loser = 'NULL'
+        loser = None
 
-    conn = connect()
-    c = conn.cursor()
-    sql = "INSERT INTO Matches (Winner, Loser) VALUES (%s, %s);"
-    data = (winner, loser,)
-    c.execute(sql, data)
-    conn.commit()
-    conn.close()
+    sqlCud(
+        "INSERT INTO Matches (Winner, Loser) VALUES (%s, %s);",
+        (winner, loser))
 
 
 def swissPairings():
@@ -163,3 +135,41 @@ def swissPairings():
 
     result = [p1+p2 for (p1,p2) in zip([(i[0],i[1]) for i in even], [(i[0],i[1]) for i in odd])]
     return result
+
+def sqlCud(sql, data=()):
+    """ Executes a sql command and commits the changes"""
+    return sqlExecute(sql, data)
+
+def sqlReadScalar(sql, data=()):
+    """ Executes a sql query.
+
+    Returns:
+        A scalar value from the query.
+    """
+    return sqlExecute(sql, data, 'fetchone')[0]
+
+def sqlRead(sql, data=()):
+    """ Executes a sql query.
+
+    Returns:
+        A scalar value from the query.
+    """
+    return sqlExecute(sql, data, 'fetchall')
+
+def sqlExecute(sql, data, resultMethodName=None):
+    """ Generic sql execution.
+
+    Returns:
+        if resultMethod is provided, returns the result of that method.
+        Examples would be 'fetchall' or 'fetchone'
+    """
+    conn = connect()
+    c = conn.cursor()
+    c.execute(sql, data)
+    if resultMethodName == None:
+        conn.commit()
+        conn.close()
+    else:
+        result = getattr(c, resultMethodName)()
+        conn.close()
+        return result
