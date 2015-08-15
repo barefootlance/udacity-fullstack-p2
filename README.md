@@ -10,7 +10,7 @@ This is an implementation of the specification for Tournament Results, the secon
 * Install Virtual Box.
 * cd into the fullstack-nanodegree-vm/vagrant folder, start up the virtual machine (vagrant up), move to the virtual command line (vagrant ssh).
 * cd into /vagrant/tournament
-* Run `psql tournament.sql` to initialize the PostgreSQL database on the virtual machine.
+* Run `psql`, then in the interpreter `\i tournament.sql` to initialize the PostgreSQL database on the virtual machine. `\q exits the interpreter.`
 * Run `python tournament_test.py`
 
 Running this file executes a small test suite to validate the python code.

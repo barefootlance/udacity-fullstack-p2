@@ -11,15 +11,17 @@ CREATE DATABASE tournament;
 \c tournament;
 
 -- Create the Players table
+DROP TABLE Players;
 CREATE TABLE Players (
   Id SERIAL PRIMARY KEY,
   Name varchar(255) NOT NULL
 );
 
 -- Create the Matches table
+DROP TABLE Matches;
 CREATE TABLE Matches (
   Id SERIAL PRIMARY KEY,
-  Player1 int NOT NULL,
-  Player2 int NOT NULL,
-  Winner int
+  Player1 int REFERENCES Players(Id),
+  Player2 int REFERENCES Players(Id),
+  Winner int REFERENCES Players(Id)
 );
