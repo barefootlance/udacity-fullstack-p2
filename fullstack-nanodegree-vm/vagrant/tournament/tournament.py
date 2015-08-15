@@ -35,7 +35,6 @@ def countPlayers():
     c = conn.cursor()
     c.execute("SELECT Count(*) FROM Players;")
     count = c.fetchone()[0]
-    conn.commit()
     conn.close()
     return count
 
@@ -70,13 +69,12 @@ def playerStandings():
         name: the player's full name (as registered)
         wins: the number of matches the player has won
         matches: the number of matches the player has played
+        byes: the number of byes the player has played
     """
     conn = connect()
     c = conn.cursor()
-    c.execute("SELECT Players.Id, Players.Name, SUM(CASE WHEN Matches.Winner=Players.Id THEN 1 ELSE 0 END) AS Wins, SUM(CASE WHEN Matches.Player1=Players.Id OR Matches.Player2=Players.Id THEN 1 ELSE 0 END) AS Matches From Players LEFT JOIN Matches on (Players.Id=Matches.Player1 OR Players.Id=Matches.Player2) GROUP BY Players.Id ORDER BY Wins DESC;")
+    c.execute("SELECT Players.Id, Players.Name, SUM(CASE WHEN Matches.Winner=Players.Id THEN 1 ELSE 0 END) AS Wins, SUM(CASE WHEN Matches.Player1=Players.Id OR Matches.Player2=Players.Id THEN 1 ELSE 0 END) AS Matches, SUM(CASE WHEN (Matches.Player1=Players.Id OR Matches.Player2=Players.Id) AND (Matches.Player1 is NULL OR Matches.Player2 is NULL) THEN 1 ELSE 0 END) AS Byes From Players LEFT JOIN Matches on (Players.Id=Matches.Player1 OR Players.Id=Matches.Player2) GROUP BY Players.Id ORDER BY Wins DESC, Byes DESC;")
     result = c.fetchall()
-    #TODO get rid of commits for read-only methods
-    conn.commit()
     conn.close()
     return result
 
@@ -88,6 +86,13 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
+    # make sure a bye is never reported as a winner
+    if winner == None:
+        if loser == None: # both are None? Idiot...
+            return
+        winner = loser
+        loser = 'NULL'
+
     conn = connect()
     c = conn.cursor()
     sql = "INSERT INTO Matches (Player1, Player2, Winner) VALUES (%s, %s, %s);"
@@ -112,6 +117,44 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
+
     standings = playerStandings()
-    result = [p1+p2 for (p1,p2) in zip([(i[0],i[1]) for i in standings[::2]], [(i[0],i[1]) for i in standings[1::2]])]
+
+    # In general we will pair up alternate players based on their
+    # place in the standings.
+    even = standings[::2]
+    odd = standings[1::2]
+
+    # If there is an odd number of players we need to assign a bye.
+    if (len(even) > len(odd)):
+
+        # NOTE: although the spec says no one can have more than one bye,
+        # what it means in a robust sense is that no player may have more
+        # than one bye more than the minimum number of byes any player has.
+        byeOffset = 4
+        maxByes = 1 + min(map(lambda x: x[byeOffset], standings))
+
+        # NOTE: playerStandings() sorts byes to the top of their win group
+        # (ie: wins is primary sort key, byes is the secondary), so we will
+        # bubble up the new bye from the bottom. There will never be more
+        # than one bye per round.
+        for i in xrange(len(standings)-1, 0, -1):
+            player = standings[i]
+            if player[byeOffset] < maxByes:
+                # move the player who gets the bye to the end of the list
+                # and stop searching.
+                standings = standings[:i] + standings[i+1:] + [player]
+                break
+
+        # Construct a bye player (with an Id of None) and add it to
+        # the end of the list, so it will be matched with the last
+        # player in the list.
+        byePlayer = (None, '', 0, 0, 0)
+        standings = standings + [byePlayer]
+
+        # reconstruct the even and odd lists for the pairings
+        even = standings[::2]
+        odd = standings[1::2]
+
+    result = [p1+p2 for (p1,p2) in zip([(i[0],i[1]) for i in even], [(i[0],i[1]) for i in odd])]
     return result
